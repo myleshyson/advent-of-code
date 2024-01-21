@@ -1,0 +1,66 @@
+
+import { Answer } from "../index.js"
+import { getReadLineStream, resolveStream } from "../input.js"
+
+export default class Solution implements Answer {
+  async solve(): Promise<void> {
+    const stream = getReadLineStream(import.meta.dirname + '/input.txt')
+    let times: number[] = []
+    let distances: number[] = []
+
+    stream.on('line', line => {
+      let number = parseInt([...line.matchAll(/(\d+)/g)].map(match => match[1]).join(''), 10)
+
+      if (!times.length) {
+        times = [number]
+        return
+      }
+
+      if (!distances.length) {
+        distances = [number]
+        return
+      }
+    })
+
+    await resolveStream(stream)
+
+    let answers = []
+
+    for (let i = 0; i < times.length; i++) {
+      const totalTime = times[i]
+      const record = distances[i]
+
+      let half = Math.floor(totalTime / 2)
+      let numWaysToBeat = 0
+
+      while (half > 0) {
+        let buttonPressedTime = half
+        const distanceTravled = this.getDistanceTraveld(totalTime, buttonPressedTime)
+
+        if (distanceTravled > record) {
+          numWaysToBeat += 2
+        } else {
+          break
+        }
+
+        half--
+      }
+
+      // odd nubmers have 2 middles, even numbers just have one
+      // since we're only counting from floor(number / 2) -> 1
+      if (totalTime % 2 === 0) {
+        numWaysToBeat--
+      }
+
+      if (numWaysToBeat > 0) {
+        answers.push(numWaysToBeat)
+      }
+    }
+
+    console.log(answers.reduce((prev, current) => current * prev))
+  }
+
+  getDistanceTraveld(totalTime: number, buttonPressedTime: number): number {
+    return (totalTime - buttonPressedTime) * buttonPressedTime
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "module",
+  "scripts": {
+    "watch": "npx tsc -w"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.11.0",
+    "lodash": "^4.17.21",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0"
+  }
+}
