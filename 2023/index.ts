@@ -19,4 +19,7 @@ export interface Answer {
 const module = await import(`./${day}/${level}`)
 const answer: Answer = new module.default()
 
+const start = performance.now()
 answer.solve()
+const end = performance.now()
+console.log(`execution time: ${end - start}ms`)
