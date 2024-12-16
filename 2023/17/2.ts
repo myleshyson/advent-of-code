@@ -80,7 +80,7 @@ export default class Solution implements Answer {
     while (pq.length > 0) {
       const [hl, row, col, dr, dc, streak] = pq.pop()!
 
-      if (row == rows - 1 && col == cols - 1) {
+      if (row == rows - 1 && col == cols - 1 && streak >= 4) {
         console.log(hl)
         break
       }
@@ -93,7 +93,7 @@ export default class Solution implements Answer {
 
       seen.add(`${row}-${col}-${dr}-${dc}-${streak}`)
 
-      if (streak < 3 && (dr != 0 || dc != 0)) {
+      if (streak < 10 && (dr != 0 || dc != 0)) {
         const newRow = row + dr
         const newCol = col + dc
 
@@ -102,13 +102,15 @@ export default class Solution implements Answer {
         }
       }
 
-      for (const direction of DIRECTIONS) {
-        if ((direction[0] !== dr || direction[1] !== dc) && (direction[0] != -dr || direction[1] != -dc)) {
-          const newRow = row + direction[0]
-          const newCol = col + direction[1]
+      if (streak >= 4 || (dr == 0 && dc == 0)) {
+        for (const direction of DIRECTIONS) {
+          if ((direction[0] !== dr || direction[1] !== dc) && (direction[0] != -dr || direction[1] != -dc)) {
+            const newRow = row + direction[0]
+            const newCol = col + direction[1]
 
-          if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
-            pq.push([hl + matrix[newRow][newCol], newRow, newCol, direction[0], direction[1], 1])
+            if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+              pq.push([hl + matrix[newRow][newCol], newRow, newCol, direction[0], direction[1], 1])
+            }
           }
         }
       }
