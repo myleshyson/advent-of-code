@@ -1,119 +1,114 @@
-#include "helpers.h"
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <queue>
-#include <set>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#include "helpers.h"
 
 std::vector<std::vector<int>> directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
 
-int findShortestPath(std::vector<std::string> &content, std::vector<int> start, std::vector<int> initialDirection) {
-  int rows = content.size();
-  int cols = content[0].size();
-
-  using MinHeap = std::priority_queue<
-      std::vector<int>, std::vector<std::vector<int>>,
-      std::function<bool(const std::vector<int> &, const std::vector<int> &)>>;
-
-  // Define the custom comparator lambda
-  auto comparator = [](const std::vector<int> &a, const std::vector<int> &b) {
-    return a[0] >
-           b[0]; // Min-heap comparator: smallest element has highest priority
-  };
-
-  MinHeap priorityQueue(comparator);
-  std::set<std::vector<int>> seen;
-
-  priorityQueue.push({0, start[0], start[1], initialDirection[0], initialDirection[1]});
-
-  int minScore = INT_MAX;
-  std::set<std::pair<int, int>> nodesInMinPath;
-
-  while (!priorityQueue.empty()) {
-    auto queueItem = priorityQueue.top();
-    priorityQueue.pop();
-    int score = queueItem[0];
-    int row = queueItem[1];
-    int col = queueItem[2];
-    int dr = queueItem[3];
-    int dc = queueItem[4];
-
-    if (score > minScore) continue;
-
-    if (content[row][col] == 'E') {
-      return score;
+struct VectorHash {
+    std::size_t operator()(const std::vector<int> &vec) const {
+        std::size_t seed = 0;
+        for (const int num: vec) {
+            // Combine the current hash with the number's hash
+            seed ^= std::hash<int>()(num) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
     }
+};
 
-    if (seen.contains({row, col, dr, dc})) continue;
-
-    seen.insert({row, col, dr, dc});
-
-    for (auto &direction : directions) {
-      int newRow = row + direction[0];
-      int newCol = col + direction[1];
-
-      if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols) continue;
-      if (content[newRow][newCol] == '#') continue;
-      if (direction[0] == -dr && direction[1] == -dc) continue;
-
-      int pointsToAdd = (dr == direction[0] && dc == direction[1]) ? 1 : 1001;
-
-      priorityQueue.push({score + pointsToAdd, newRow, newCol, direction[0], direction[1]});
+// Define a custom equality function for std::vector<int> (optional, but makes explicit how vectors are compared)
+struct VectorEqual {
+    bool operator()(const std::vector<int> &a, const std::vector<int> &b) const {
+        return a == b; // Vectors are equal if their elements are equal
     }
-  }
+};
 
-  return -1;
+struct QueueItem {
+    int score;
+    int row;
+    int col;
+    int dr;
+    int dc;
+    std::shared_ptr<const QueueItem> parent;
+
+    QueueItem(
+            const int score,
+            const int row,
+            const int col,
+            const int dr,
+            const int dc,
+            std::shared_ptr<const QueueItem> parent
+    ) : score(score), row(row), col(col), dr(dr), dc(dc), parent(std::move(parent)) {}
+};
+
+std::vector<std::pair<int, int>> reconstructPath(std::shared_ptr<const QueueItem> item) {
+    std::vector<std::pair<int, int>> path;
+    while (item) {
+        path.emplace_back(item->row, item->col);
+        item = item->parent; // Traverse parent pointers
+    }
+    return path;
 }
 
 int main() {
-  std::ifstream input = getStream("16.txt");
-  std::string line;
-  std::vector<std::string> content;
+    std::ifstream input = getStream("16.txt");
+    std::string line;
+    std::vector<std::string> content;
 
-  while (getline(input, line)) {
-    content.push_back(line);
-  }
-
-  std::vector<std::string> copy = content;
-  std::set<std::vector<int>> seen;
-  auto minScore = findShortestPath(content, {static_cast<int>(content.size()) - 2, 1}, {0, 1});
-  int rows = content.size();
-  int cols = content[0].size();
-
-  std::queue<std::vector<int>> queue;
-
-  queue.push({static_cast<int>(content.size()) - 2, 1, 0, 0, 1});
-
-  while (!queue.empty()) {
-    auto item = queue.front();
-    queue.pop();
-    int row = item[0];
-    int col = item[1];
-    int score = item[2];
-    int dr = item[3];
-    int dc = item[4];
-
-    if (seen.contains({row, col})) continue;
-    if (findShortestPath(content, {row, col}, {dr, dc}) + score == minScore) {
-      seen.insert({row, col});
-    } else {
-      continue;
+    while (getline(input, line)) {
+        content.push_back(line);
     }
 
-    for (auto direction : directions) {
-      int newRow = row + direction[0];
-      int newCol = col + direction[1];
+    using MinHeap = std::priority_queue<
+            std::shared_ptr<QueueItem>, std::vector<std::shared_ptr<QueueItem>>,
+            std::function<bool(const std::shared_ptr<QueueItem> &, const std::shared_ptr<QueueItem> &)>>;
 
-      if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols) continue;
-      if (content[newRow][newCol] == '#') continue;
-      if (direction[0] == -dr && direction[1] == -dc) continue;
-      if (seen.contains({newRow, newCol})) continue;
+    auto comparator = [](const std::shared_ptr<QueueItem> a, const std::shared_ptr<QueueItem> &b) {
+        return a->score > b->score;
+    };
 
-      int pointsToAdd = (dr == direction[0] && dc == direction[1]) ? 1 : 1001;
-      queue.push({newRow, newCol, score + pointsToAdd, direction[0], direction[1]});
+    int rows = static_cast<int>(content.size());
+    int cols = static_cast<int>(content[0].size());
+    int minVal = INT_MAX;
+    MinHeap priorityQueue(comparator);
+    std::unordered_set<std::vector<int>, VectorHash, VectorEqual> seen;
+    std::unordered_set<std::vector<int>, VectorHash, VectorEqual> good;
+    QueueItem initial = {0, rows - 2, 1, 0, 1, nullptr};
+    priorityQueue.push(std::make_shared<QueueItem>(initial));
+
+    while (!priorityQueue.empty()) {
+        auto item = priorityQueue.top();
+        priorityQueue.pop();
+        seen.insert({item->row, item->col, item->dr, item->dc});
+
+        if (content[item->row][item->col] == 'E' && item->score <= minVal) {
+            minVal = std::min(minVal, item->score);
+            auto path = reconstructPath(item->parent);
+            for (auto &pair: path) {
+                good.insert({pair.first, pair.second});
+            }
+        }
+
+        for (auto direction: directions) {
+            int newRow = item->row + direction[0];
+            int newCol = item->col + direction[1];
+
+            if (newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols) continue;
+            if (content[newRow][newCol] == '#') continue;
+            if (direction[0] == -item->dr && direction[1] == -item->dc) continue;
+            if (seen.contains({newRow, newCol, direction[0], direction[1]})) continue;
+            int newScore = ((item->dr == direction[0] && item->dc == direction[1]) ? 1 : 1001) + item->score;
+            QueueItem newItem({newScore, newRow, newCol, direction[0], direction[1], item});
+            priorityQueue.push(std::make_shared<QueueItem>(newItem));
+        }
     }
-  }
 
-  std::cout << minScore << std::endl;
-  std::cout << seen.size() << std::endl;
+    std::cout << minVal << std::endl;
+    // we don't add the destination in our loop, so that's why we have to add a 1 here.
+    std::cout << good.size() + 1 << std::endl;
 }
