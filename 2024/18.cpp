@@ -55,37 +55,47 @@ int simulate(const std::vector<std::vector<char>> &matrix) {
 
 int main() {
     std::vector matrix(MATRIX_SIZE, std::vector(MATRIX_SIZE, '.'));
+    std::vector<std::vector<int>> bytes;
     std::ifstream input = getStream("18.txt");
     std::string line;
-
-    int count = 0;
-
-    while (getline(input, line) && count < BYTES_TO_READ) {
-        int x, y;
-
-        sscanf(line.c_str(), "%d,%d", &x, &y);
-
-        if (inBounds(x, y, matrix)) {
-            matrix[y][x] = '#';
-        }
-
-        count++;
-    }
-
-    std::println("{}", simulate(matrix));
 
     while (getline(input, line)) {
         int x, y;
 
         sscanf(line.c_str(), "%d,%d", &x, &y);
 
-        if (!inBounds(x, y, matrix)) continue;
-
-        matrix[y][x] = '#';
-
-        if (simulate(matrix) == -1) {
-            std::println("{},{}", x, y);
-            break;
+        if (inBounds(x, y, matrix)) {
+            bytes.push_back({x, y});
         }
     }
+
+    for (int i = 0; i < BYTES_TO_READ; i++) {
+        matrix[bytes[i][1]][bytes[i][0]] = '#';
+    }
+
+    std::println("{}", simulate(matrix));
+
+    int left = BYTES_TO_READ;
+    int right = bytes.size() - 1;
+    int mid;
+
+    while (right - left > 1) {
+        mid = (left + right) / 2;
+
+        matrix = std::vector(MATRIX_SIZE, std::vector(MATRIX_SIZE, '.'));
+
+        for (int i = 0; i <= mid; i++) {
+            matrix[bytes[i][1]][bytes[i][0]] = '#';
+        }
+
+        if (simulate(matrix) != -1) {
+            left = mid;
+        }
+        else {
+            right = mid;
+        }
+    }
+
+    std::println("{}", bytes[right]);
+
 }
