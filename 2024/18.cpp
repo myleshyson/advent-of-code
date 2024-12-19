@@ -77,10 +77,9 @@ int main() {
 
     int left = BYTES_TO_READ;
     int right = bytes.size() - 1;
-    int mid;
 
     while (right - left > 1) {
-        mid = (left + right) / 2;
+        const int mid = (left + right) / 2;
 
         matrix = std::vector(MATRIX_SIZE, std::vector(MATRIX_SIZE, '.'));
 
