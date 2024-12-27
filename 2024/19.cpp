@@ -4,6 +4,32 @@
 #include <unordered_map>
 
 #include "helpers.h"
+
+/**
+ * It's helpful to think of this like a tree with branches.
+ *
+ * The root node is the full design. is a valid substr that starts the design.
+ *
+ * For example:
+ *                     brwrr
+                      /     \
+           use "br"  /       \ use "b"
+                   wrr       rwrr
+                  /           \
+        use "wr" /             \ use "r"
+               r                wrr
+              /                  \
+     use "r" /                    \ use "wr"
+           ""                      r
+                                  |
+                            use "r"|
+                                  ""
+ * @param design
+ * @param maxLength
+ * @param towels
+ * @param cache
+ * @return
+ */
 long long possibilities(std::string design, int &maxLength, std::unordered_set<std::string> &towels, std::unordered_map<std::string, long long> &cache) {
     if (cache.contains(design)) return cache[design];
 
