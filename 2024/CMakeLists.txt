@@ -1,8 +1,30 @@
 cmake_minimum_required(VERSION 3.29)
-project(AdventOfCode)
+project(AdventOfCode LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_OSX_SYSROOT "")
+
+if(APPLE)
+        # This checks the default Homebrew installation path
+        if(EXISTS "/opt/homebrew")
+                set(HOMEBREW_PREFIX "/opt/homebrew")
+        elseif(EXISTS "/usr/local")
+                # For Intel Macs that might have an older Homebrew installation
+                set(HOMEBREW_PREFIX "/usr/local")
+        endif()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs")
+endif()
+
+# Add the include directories
+include_directories(
+        ${HOMEBREW_PREFIX}/include
+        ${HOMEBREW_PREFIX}/opt/gcc/include
+)
+
+link_directories(
+        ${HOMEBREW_PREFIX}/lib
+)
 
 find_package(benchmark REQUIRED)
 
@@ -39,6 +61,7 @@ add_executable(question_17 17.cpp helpers.cpp helpers.h)
 add_executable(question_18 18.cpp helpers.cpp helpers.h)
 add_executable(question_19 19.cpp helpers.cpp helpers.h)
 add_executable(question_20 20.cpp helpers.h helpers.cpp)
+add_executable(question_21 21.cpp helpers.cpp helpers.h)
 
 target_link_libraries(question_11 benchmark::benchmark)
 target_link_libraries(question_12 benchmark::benchmark)

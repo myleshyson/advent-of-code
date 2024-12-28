@@ -1,5 +1,6 @@
 #include "helpers.h"
 
+
 std::string projectPath = std::filesystem::path(__FILE__).parent_path();
 
 FILE *getScan(const char *filename) {

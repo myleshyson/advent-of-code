@@ -53,7 +53,7 @@ int getAnswer(
         const std::unordered_map<Point, int> &distances
 ) {
     int answer = 0;
-    
+
     // Precompute vector sizes to avoid reallocations
     #pragma omp parallel for reduction(+:answer)
     for (const auto &point: path) {
