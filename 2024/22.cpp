@@ -1,7 +1,6 @@
 #include "helpers.h"
 
-long long calculate(long long number) {
-
+void calculate(long long &number) {
     long long result = number * 64;
 
     number = number ^ result;
@@ -12,8 +11,6 @@ long long calculate(long long number) {
     result = number * 2048;
     number ^= result;
     number = number % 16777216;
-
-    return number;
 }
 
 int main() {
@@ -30,7 +27,7 @@ int main() {
         std::unordered_set<std::string> seen;
 
         for (int i = 0; i < 2000; i++) {
-            secretNumber = calculate(secretNumber);
+            calculate(secretNumber);
             differenceQueue.push((secretNumber % 10) - lastDigit);
             lastDigit = secretNumber % 10;
 
