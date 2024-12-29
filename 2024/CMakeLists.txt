@@ -59,6 +59,7 @@ add_executable(question_21 21.cpp helpers.cpp helpers.h)
 add_executable(question_22 22.cpp helpers.cpp helpers.h)
 add_executable(question_23 23.cpp helpers.h helpers.cpp)
 add_executable(question_24 24.cpp helpers.cpp helpers.h 24.h)
+add_executable(question_25 25.cpp helpers.cpp helpers.h)
 
 target_link_libraries(question_11 benchmark::benchmark)
 target_link_libraries(question_12 benchmark::benchmark)

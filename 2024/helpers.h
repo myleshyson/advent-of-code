@@ -20,8 +20,8 @@
 #include <bitset>
 
 std::ifstream getStream(const std::string &filename);
-
 FILE *getScan(const char *filename);
+std::vector<std::string> explode(const std::string &string, const std::string &delimiter);
 
 template <typename T>
 void printVector(const std::vector<T>& vec) {
@@ -104,3 +104,4 @@ struct std::formatter<std::vector<T>> : std::formatter<string_view> {
         return format_to(ctx.out(), "]");
     }
 };
+
