@@ -35,14 +35,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
         set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "Release build flags" FORCE)
 endif()
 
-add_executable(question_1 1.cpp
-        helpers.h
-        helpers.cpp
-        )
-add_executable(question_2 2.cpp
-        helpers.h
-        helpers.cpp
-)
+add_executable(question_1 1.cpp helpers.h helpers.cpp)
+add_executable(question_2 2.cpp helpers.h helpers.cpp)
 add_executable(question_3 3.cpp helpers.h helpers.cpp)
 add_executable(question_4 4.cpp helpers.cpp helpers.h)
 add_executable(question_5 5.cpp helpers.cpp helpers.h)
@@ -64,6 +58,7 @@ add_executable(question_20 20.cpp helpers.h helpers.cpp)
 add_executable(question_21 21.cpp helpers.cpp helpers.h)
 add_executable(question_22 22.cpp helpers.cpp helpers.h)
 add_executable(question_23 23.cpp helpers.h helpers.cpp)
+add_executable(question_24 24.cpp helpers.cpp helpers.h 24.h)
 
 target_link_libraries(question_11 benchmark::benchmark)
 target_link_libraries(question_12 benchmark::benchmark)

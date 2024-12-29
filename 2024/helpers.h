@@ -17,6 +17,7 @@
 #include <print>
 #include <ostream>
 #include <format>
+#include <bitset>
 
 std::ifstream getStream(const std::string &filename);
 

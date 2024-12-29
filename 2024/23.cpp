@@ -174,6 +174,7 @@ int main() {
     }
 
     // Find maximum clique
+    // Bron–Kerbosch algorithm
     findMaxClique(graph, R, P, X, largestClique);
 
     std::string result;
