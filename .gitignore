@@ -1,5 +1,6 @@
 *.txt
 **/target/
+**/inputs
 
 # Editor/OS specific files (optional, but common)
 .DS_Store
