@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, time::Duration};
 
 const BASE_URL: &str = "https://adventofcode.com/2025/day/";
 
@@ -39,6 +39,13 @@ pub fn input(day: i32, test: bool) -> Result<String, Box<dyn std::error::Error>>
     Ok(content)
 }
 
+fn do_part<T: std::fmt::Display>(name: &str, input: &str, part: impl FnOnce(&str) -> T) {
+    let start = std::time::Instant::now();
+    let result = part(&input);
+    let duration = start.elapsed();
+    println!("{name}: {result}\n---\n(took: {:?})", duration)
+}
+
 pub fn run_day<T: std::fmt::Display>(
     day: i32,
     part1: impl FnOnce(&str) -> T,
@@ -56,10 +63,11 @@ pub fn run_day<T: std::fmt::Display>(
     let input = input(day, test).expect("failed to load input");
 
     match part {
-        "1" => println!("{}", part1(&input)),
-        "2" => println!("{}", part2(&input)),
+        "1" => do_part("Part 1", input.as_str(), part1),
+        "2" => do_part("Part 2", input.as_str(), part2),
         _ => {
-            println!("{}\n{}", part1(&input), part2(&input));
+            do_part("Part 1", input.as_str(), part1);
+            do_part("Part 2", input.as_str(), part2);
         }
-    }
+    };
 }

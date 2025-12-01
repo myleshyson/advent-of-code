@@ -11,13 +11,13 @@ fn parse_input(input: &str) -> Vec<(&str, u32)> {
 
 fn part1(input: &str) -> u32 {
     let mut hit_zero = 0;
-    let mut current_num = 50;
+    let mut current_num: i32 = 50;
 
     let turns = parse_input(input);
     for (turn, num) in turns {
         match turn {
-            "L" => current_num = (current_num - num) % 100,
-            "R" => current_num = (current_num + num) % 100,
+            "L" => current_num = (current_num - num as i32) % 100,
+            "R" => current_num = (current_num + num as i32) % 100,
             _ => panic!("invalid direction"),
         };
 
@@ -28,8 +28,7 @@ fn part1(input: &str) -> u32 {
 
     hit_zero
 }
-// 50
-//
+
 fn part2(input: &str) -> u32 {
     let mut hit_zero: u32 = 0;
     let mut current_num: i32 = 50;
