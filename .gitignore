@@ -1,1 +1,8 @@
 *.txt
+**/target/
+
+# Editor/OS specific files (optional, but common)
+.DS_Store
+.vscode/
+*.swp
+*.bak
