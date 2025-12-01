@@ -1,4 +1,4 @@
-use std::{fs, path::Path, time::Duration};
+use std::{fs, path::Path};
 
 const BASE_URL: &str = "https://adventofcode.com/2025/day/";
 
@@ -67,6 +67,7 @@ pub fn run_day<T: std::fmt::Display>(
         "2" => do_part("Part 2", input.as_str(), part2),
         _ => {
             do_part("Part 1", input.as_str(), part1);
+            println!("\n---\n");
             do_part("Part 2", input.as_str(), part2);
         }
     };

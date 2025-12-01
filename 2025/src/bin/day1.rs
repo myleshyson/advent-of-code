@@ -38,8 +38,8 @@ fn part2(input: &str) -> u32 {
         let at_zero = current_num == 0;
 
         match turn {
-            "L" => current_num = (current_num - (num as i32)),
-            "R" => current_num = (current_num + (num as i32)),
+            "L" => current_num = current_num - num as i32,
+            "R" => current_num = current_num + num as i32,
             _ => panic!("invalid direction"),
         };
 
