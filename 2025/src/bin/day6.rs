@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num, ops::Mul};
+use std::collections::HashMap;
 
 use aoc_2025::run_day;
 
