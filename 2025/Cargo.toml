@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+disjoint = "0.8.0"
 itertools = "0.14.0"
 reqwest = "0.12.24"
 tokio = { version = "1.48.0", features = ["full"] }
