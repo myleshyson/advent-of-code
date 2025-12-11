@@ -56,17 +56,17 @@ impl Point {
     }
 
     fn neighbors(&self) -> impl Iterator<Item = Point> {
-        [
-            Point(self.x() + 1, self.y()),
-            Point(self.x() - 1, self.y()),
-            Point(self.x(), self.y() + 1),
-            Point(self.x(), self.y() - 1),
-            Point(self.x() + 1, self.y() + 1),
-            Point(self.x() - 1, self.y() - 1),
-            Point(self.x() + 1, self.y() - 1),
-            Point(self.x() - 1, self.y() + 1),
-        ]
-        .into_iter()
+        let mut result = vec![Point(self.x() + 1, self.y()), Point(self.x(), self.y() + 1)];
+
+        if self.x() > 0 {
+            result.push(Point(self.x() - 1, self.y()));
+        }
+
+        if self.y() > 0 {
+            result.push(Point(self.x(), self.y() - 1));
+        }
+
+        return result.into_iter();
     }
 }
 
@@ -136,11 +136,7 @@ fn part2(input: &str) -> u64 {
     // fill outside
     for y in 0..height {
         for x in 0..width {
-            if x != 0 && x != width - 1 {
-                continue;
-            }
-
-            if y != 0 && y != height - 1 {
+            if (x != 0 && x != width - 1) && (y != 0 && y != height - 1) {
                 continue;
             }
 
