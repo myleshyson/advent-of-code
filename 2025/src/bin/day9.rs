@@ -1,4 +1,7 @@
-use std::ops::Add;
+use std::{
+    collections::{HashMap, VecDeque},
+    ops::Add,
+};
 
 use aoc_2025::run_day;
 use itertools::Itertools;
@@ -33,11 +36,37 @@ fn part1(input: &str) -> u64 {
 struct Point(u64, u64);
 
 impl Point {
+    fn from_usize(x: usize, y: usize) -> Self {
+        Point(x as u64, y as u64)
+    }
     fn x(&self) -> u64 {
         self.0
     }
+
     fn y(&self) -> u64 {
         self.1
+    }
+
+    fn x_usize(&self) -> usize {
+        self.0 as usize
+    }
+
+    fn y_usize(&self) -> usize {
+        self.1 as usize
+    }
+
+    fn neighbors(&self) -> impl Iterator<Item = Point> {
+        [
+            Point(self.x() + 1, self.y()),
+            Point(self.x() - 1, self.y()),
+            Point(self.x(), self.y() + 1),
+            Point(self.x(), self.y() - 1),
+            Point(self.x() + 1, self.y() + 1),
+            Point(self.x() - 1, self.y() - 1),
+            Point(self.x() + 1, self.y() - 1),
+            Point(self.x() - 1, self.y() + 1),
+        ]
+        .into_iter()
     }
 }
 
@@ -53,7 +82,6 @@ fn part2(input: &str) -> u64 {
         .collect();
 
     let mut edges: Vec<(Point, Point)> = Vec::new();
-
     let mut prev = points.get(0).unwrap();
 
     for point in points.iter().skip(1) {
@@ -62,125 +90,105 @@ fn part2(input: &str) -> u64 {
     }
 
     edges.push((points[0], *prev));
-    let mut max_area = 0;
 
-    for point_1 in points.iter() {
-        'outerLoop: for point_2 in points.iter().filter(|&p| p != point_1) {
-            let point_3 = Point(point_1.x(), point_2.y());
-            let point_4 = Point(point_2.x(), point_1.y());
+    let xs: Vec<u64> = points.iter().map(|p| p.x()).sorted().dedup().collect();
+    let ys: Vec<u64> = points.iter().map(|p| p.y()).sorted().dedup().collect();
 
-            if !point_in_polygon(&point_3, &edges) || !point_in_polygon(&point_4, &edges) {
+    // 0, 1, 2, 3
+    // for (x,y) like (90000, 800000)
+    // something like:
+    // 90000 -> 200
+    // 80000 -> 100
+    let x_to_idx: HashMap<u64, usize> = xs.iter().enumerate().map(|(i, &x)| (x, i)).collect();
+    let y_to_idx: HashMap<u64, usize> = ys.iter().enumerate().map(|(i, &y)| (y, i)).collect();
+
+    let width = xs.len();
+    let height = ys.len();
+
+    let mut grid: Vec<Vec<Option<bool>>> = vec![vec![None; width]; height];
+
+    let mut prev: Option<Point> = None;
+    for point in points.iter().chain(std::iter::once(&points[0])) {
+        let compressed_point = Point::from_usize(x_to_idx[&point.x()], y_to_idx[&point.y()]);
+
+        grid[compressed_point.y_usize()][compressed_point.x_usize()] = Some(true);
+
+        if prev == None {
+            prev = Some(compressed_point);
+            continue;
+        }
+
+        let prev_unwrapped = prev.unwrap();
+
+        for y in compressed_point.y().min(prev_unwrapped.y())
+            ..=compressed_point.y().max(prev_unwrapped.y())
+        {
+            for x in compressed_point.x().min(prev_unwrapped.x())
+                ..=compressed_point.x().max(prev_unwrapped.x())
+            {
+                grid[y as usize][x as usize] = Some(true);
+            }
+        }
+
+        prev = Some(compressed_point);
+    }
+
+    // fill outside
+    for y in 0..height {
+        for x in 0..width {
+            if x != 0 && x != width - 1 {
                 continue;
             }
 
-            let rect_horizontal_edges = vec![(*point_1, point_4), (*point_2, point_3)];
-            let rect_vertical_edges = vec![(*point_1, point_3), (*point_2, point_4)];
+            if y != 0 && y != height - 1 {
+                continue;
+            }
 
-            for vertical_edge in edges.iter().filter(|e| e.0.x() == e.1.x()) {
-                let top_edge = rect_horizontal_edges
-                    .iter()
-                    .sorted_by(|a, b| a.0.y().cmp(&b.0.y()))
-                    .next()
-                    .unwrap();
-                let bottom_edge = rect_horizontal_edges
-                    .iter()
-                    .sorted_by(|a, b| b.0.y().cmp(&a.0.y()))
-                    .next()
-                    .unwrap();
+            if grid[y][x] == None {
+                grid[y][x] = Some(false);
 
-                let min_x = top_edge.0.x().min(top_edge.1.x());
-                let max_x = top_edge.0.x().max(top_edge.1.x());
+                let mut queue: VecDeque<Point> = VecDeque::new();
+                queue.push_back(Point::from_usize(x, y));
+                while let Some(point) = queue.pop_front() {
+                    for neighbor in point.neighbors() {
+                        if grid.get(neighbor.y_usize()).is_none()
+                            || grid[neighbor.y_usize()].get(neighbor.x_usize()).is_none()
+                        {
+                            continue;
+                        }
+                        if grid[neighbor.y_usize()][neighbor.x_usize()] == None {
+                            grid[neighbor.y_usize()][neighbor.x_usize()] = Some(false);
+                            queue.push_back(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-                let min_vert_y = vertical_edge.0.y().min(vertical_edge.1.y());
-                let max_vert_y = vertical_edge.0.y().max(vertical_edge.1.y());
+    // now try to fill in a rectangle without hitting point thats on the outside
+    let mut max_area = 0;
+    for point_1 in points.iter() {
+        'outerloop: for point_2 in points.iter().filter(|p| *p != point_1) {
+            let point_1_x = x_to_idx[&point_1.x()];
+            let point_1_y = y_to_idx[&point_1.y()];
+            let point_2_x = x_to_idx[&point_2.x()];
+            let point_2_y = y_to_idx[&point_2.y()];
 
-                if vertical_edge.0.x() > min_x
-                    && vertical_edge.0.x() < max_x
-                    && (
-                        // crosses top line
-                        (min_vert_y < top_edge.0.y() && max_vert_y > top_edge.0.y())
-                        // crosses bottom line
-                        || (min_vert_y < bottom_edge.0.y() && max_vert_y > bottom_edge.0.y())
-                        // crosses both lines
-                        || (min_vert_y <= top_edge.0.y() && max_vert_y >= bottom_edge.0.y())
-                        // contained within the lines
-                        || (min_vert_y >= top_edge.0.y() && max_vert_y <= bottom_edge.0.y())
-                    )
-                {
-                    break 'outerLoop;
+            for y in point_1_y.min(point_2_y)..=point_1_y.max(point_2_y) {
+                for x in point_1_x.min(point_2_x)..=point_1_x.max(point_2_x) {
+                    if grid[y][x] == Some(false) {
+                        continue 'outerloop;
+                    }
                 }
             }
 
-            // for all edges in our shape that are horizontal, see if any pass through our square
-            for horizontal_edge in edges.iter().filter(|e| e.0.y() == e.1.y()) {
-                let left_edge = rect_vertical_edges
-                    .iter()
-                    .sorted_by(|a, b| a.0.x().cmp(&b.0.x()))
-                    .next()
-                    .unwrap();
-                let right_edge = rect_vertical_edges
-                    .iter()
-                    .sorted_by(|a, b| b.0.x().cmp(&a.0.x()))
-                    .next()
-                    .unwrap();
-
-                let min_y = left_edge.0.y().min(left_edge.1.y());
-                let max_y = left_edge.0.y().max(left_edge.1.y());
-
-                let min_horz_x = horizontal_edge.0.x().min(horizontal_edge.1.x());
-                let max_horz_x = horizontal_edge.0.x().max(horizontal_edge.1.x());
-
-                if horizontal_edge.0.y() > min_y
-                    && horizontal_edge.0.y() < max_y
-                    && (
-                        // crosses left
-                        (min_horz_x < left_edge.0.x() && max_horz_x > left_edge.0.x())
-                   // crosses right
-                   || (min_horz_x < right_edge.0.x() && max_horz_x > right_edge.0.x())
-                   // crosses both
-                   || (min_horz_x <= left_edge.0.x() && max_horz_x >= right_edge.0.x())
-                   // contains
-                   || (min_horz_x >= left_edge.0.x() && max_horz_x <= right_edge.0.x())
-                    )
-                {
-                    break 'outerLoop;
-                }
-            }
             let area = point_1.0.abs_diff(point_2.0).add(1) * point_1.1.abs_diff(point_2.1).add(1);
             max_area = max_area.max(area);
         }
     }
+
     max_area
-}
-
-// AI had to help me with this. Definitely out of my depth with this problem
-fn point_in_polygon(point: &Point, edges: &[(Point, Point)]) -> bool {
-    let mut inside = false;
-    let x = point.x();
-    let y = point.y();
-
-    for edge in edges {
-        let x1 = edge.0.x();
-        let y1 = edge.0.y();
-        let x2 = edge.1.x();
-        let y2 = edge.1.y();
-
-        // on the vertical line. definitely inside
-        if x == x1 && x == x2 && y >= y1.min(y2) && y <= y1.max(y2) {
-            return true;
-        }
-
-        // on the horizontal line. definitely inside.
-        if y == y1 && y == y2 && x >= x1.min(x2) && x <= x1.max(x2) {
-            return true;
-        }
-
-        if x1 == x2 && (y > y1) != (y > y2) && x < x1 {
-            inside = !inside;
-        }
-    }
-
-    inside
 }
 
 fn main() {
