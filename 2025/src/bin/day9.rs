@@ -6,13 +6,13 @@ use std::{
 use aoc_2025::run_day;
 use itertools::Itertools;
 
-fn part1(input: &str) -> u64 {
-    let points: Vec<(u64, u64)> = input
+fn part1(input: &str) -> u32 {
+    let points: Vec<(u32, u32)> = input
         .lines()
         .map(|line| {
             let mut iter = line
                 .split(",")
-                .map(|num| num.parse::<u64>().expect("invalid num"));
+                .map(|num| num.parse::<u32>().expect("invalid num"));
             (iter.next().unwrap(), iter.next().unwrap())
         })
         .collect();
@@ -33,17 +33,17 @@ fn part1(input: &str) -> u64 {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug, Eq)]
-struct Point(u64, u64);
+struct Point(u32, u32);
 
 impl Point {
     fn from_usize(x: usize, y: usize) -> Self {
-        Point(x as u64, y as u64)
+        Point(x as u32, y as u32)
     }
-    fn x(&self) -> u64 {
+    fn x(&self) -> u32 {
         self.0
     }
 
-    fn y(&self) -> u64 {
+    fn y(&self) -> u32 {
         self.1
     }
 
@@ -70,48 +70,93 @@ impl Point {
     }
 }
 
-fn part2(input: &str) -> u64 {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Cellstate {
+    Empty = 0,
+    Inside = 1,
+    Outside = 2,
+}
+
+pub struct Grid {
+    data: Vec<u8>,
+    width: usize,
+    height: usize,
+}
+
+impl Grid {
+    pub fn new(width: usize, height: usize) -> Self {
+        let total_cells = width * height;
+        let bytes_needed = (total_cells / 4) + if total_cells % 4 == 0 { 0 } else { 1 };
+
+        Grid {
+            data: vec![0; bytes_needed],
+            width,
+            height,
+        }
+    }
+
+    pub fn get(&self, x: usize, y: usize) -> Cellstate {
+        if x >= self.width || y >= self.height {
+            return Cellstate::Outside;
+        }
+
+        let pos = y * self.width + x;
+        let byte_idx = pos / 4;
+        let shift = (pos % 4) * 2;
+
+        match (self.data[byte_idx] >> shift) & 0b11 {
+            0 => Cellstate::Empty,
+            1 => Cellstate::Inside,
+            2 => Cellstate::Outside,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, state: Cellstate) {
+        if x >= self.width || y >= self.height {
+            panic!("Out of bounds!");
+        }
+
+        let pos = y * self.width + x;
+        let byte_idx = pos / 4;
+        let shift = (pos % 4) * 2;
+        let clear_mask = !(0b11 << shift);
+        let new_val = (state as u8) << shift;
+        self.data[byte_idx] = (self.data[byte_idx] & clear_mask) | new_val;
+    }
+}
+
+fn part2(input: &str) -> u32 {
     let points: Vec<Point> = input
         .lines()
         .map(|line| {
             let mut iter = line
                 .split(",")
-                .map(|num| num.parse::<u64>().expect("invalid num"));
+                .map(|num| num.parse::<u32>().expect("invalid num"));
             Point(iter.next().unwrap(), iter.next().unwrap())
         })
         .collect();
 
-    let mut edges: Vec<(Point, Point)> = Vec::new();
-    let mut prev = points.get(0).unwrap();
+    let xs: Vec<u32> = points.iter().map(|p| p.x()).sorted().dedup().collect();
+    let ys: Vec<u32> = points.iter().map(|p| p.y()).sorted().dedup().collect();
 
-    for point in points.iter().skip(1) {
-        edges.push((prev.clone(), point.clone()));
-        prev = point;
-    }
-
-    edges.push((points[0], *prev));
-
-    let xs: Vec<u64> = points.iter().map(|p| p.x()).sorted().dedup().collect();
-    let ys: Vec<u64> = points.iter().map(|p| p.y()).sorted().dedup().collect();
-
-    // 0, 1, 2, 3
-    // for (x,y) like (90000, 800000)
-    // something like:
-    // 90000 -> 200
-    // 80000 -> 100
-    let x_to_idx: HashMap<u64, usize> = xs.iter().enumerate().map(|(i, &x)| (x, i)).collect();
-    let y_to_idx: HashMap<u64, usize> = ys.iter().enumerate().map(|(i, &y)| (y, i)).collect();
+    let x_to_idx: HashMap<u32, usize> = xs.iter().enumerate().map(|(i, &x)| (x, i)).collect();
+    let y_to_idx: HashMap<u32, usize> = ys.iter().enumerate().map(|(i, &y)| (y, i)).collect();
 
     let width = xs.len();
     let height = ys.len();
-
-    let mut grid: Vec<Vec<Option<bool>>> = vec![vec![None; width]; height];
+    let mut grid = Grid::new(width, height);
 
     let mut prev: Option<Point> = None;
     for point in points.iter().chain(std::iter::once(&points[0])) {
         let compressed_point = Point::from_usize(x_to_idx[&point.x()], y_to_idx[&point.y()]);
 
-        grid[compressed_point.y_usize()][compressed_point.x_usize()] = Some(true);
+        grid.set(
+            compressed_point.x_usize(),
+            compressed_point.y_usize(),
+            Cellstate::Inside,
+        );
 
         if prev == None {
             prev = Some(compressed_point);
@@ -126,34 +171,36 @@ fn part2(input: &str) -> u64 {
             for x in compressed_point.x().min(prev_unwrapped.x())
                 ..=compressed_point.x().max(prev_unwrapped.x())
             {
-                grid[y as usize][x as usize] = Some(true);
+                grid.set(x as usize, y as usize, Cellstate::Inside);
             }
         }
 
         prev = Some(compressed_point);
     }
 
-    // fill outside
+    // fill outside. we're gonna go around the edge of the grid. since we already
+    // filled the borders, now we'll just mark if anything is outside of the borders
     for y in 0..height {
         for x in 0..width {
             if (x != 0 && x != width - 1) && (y != 0 && y != height - 1) {
                 continue;
             }
 
-            if grid[y][x] == None {
-                grid[y][x] = Some(false);
+            if grid.get(x, y) == Cellstate::Empty {
+                grid.set(x as usize, y as usize, Cellstate::Outside);
 
                 let mut queue: VecDeque<Point> = VecDeque::new();
                 queue.push_back(Point::from_usize(x, y));
                 while let Some(point) = queue.pop_front() {
                     for neighbor in point.neighbors() {
-                        if grid.get(neighbor.y_usize()).is_none()
-                            || grid[neighbor.y_usize()].get(neighbor.x_usize()).is_none()
-                        {
+                        let state = grid.get(neighbor.x_usize(), neighbor.y_usize());
+
+                        if state == Cellstate::Outside {
                             continue;
                         }
-                        if grid[neighbor.y_usize()][neighbor.x_usize()] == None {
-                            grid[neighbor.y_usize()][neighbor.x_usize()] = Some(false);
+
+                        if state == Cellstate::Empty {
+                            grid.set(neighbor.x_usize(), neighbor.y_usize(), Cellstate::Outside);
                             queue.push_back(neighbor);
                         }
                     }
@@ -173,7 +220,7 @@ fn part2(input: &str) -> u64 {
 
             for y in point_1_y.min(point_2_y)..=point_1_y.max(point_2_y) {
                 for x in point_1_x.min(point_2_x)..=point_1_x.max(point_2_x) {
-                    if grid[y][x] == Some(false) {
+                    if grid.get(x, y) == Cellstate::Outside {
                         continue 'outerloop;
                     }
                 }
